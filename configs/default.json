@@ -1,8 +1,10 @@
 {
-  "normalization": "SNV",
-  "feature_selection": "ANOVA",
-  "top_k_features": 125,
-  "ensemble_size": 50,
-  "base_estimator": "decision_stump_adaboost",
-  "threshold": 0.5
+  "top_k": 125,
+  "n_submodels": 50,
+  "n_estimators": 50,
+  "learning_rate": 1.0,
+  "max_depth": 1,
+  "threshold": 0.5,
+  "random_state": 42,
+  "snv_eps": 1e-9
 }
