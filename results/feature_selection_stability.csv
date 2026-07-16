@@ -1,0 +1,3 @@
+method,n_outer_train_sets,mean_pairwise_jaccard,std_pairwise_jaccard,n_features_selected_all,n_features_selected_ge80pct
+f125,80,0.5390884811418258,0.057695078618634495,32,67
+auc100,80,0.5391152627118437,0.05975619736426447,22,53
