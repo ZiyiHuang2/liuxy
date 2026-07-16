@@ -1,0 +1,19 @@
+{
+  "created": "2026-07-16",
+  "dataset": "data/voc_dataset_1+2_vs_3.mat",
+  "candidate": "SNV + fixed Top125 / weighted random150 / Top250 random125 Easy-50, equal average, threshold 0.5",
+  "confirmation_seed_groups": ["85001:85016", "86001:86016"],
+  "n_confirmation_seeds": 32,
+  "f1_mean": 0.7713763812970011,
+  "f1_std": 0.028644523412915075,
+  "f1_min": 0.7037037037037037,
+  "roc_auc_mean": 0.9017888928444286,
+  "pr_auc_mean": 0.8318630489116546,
+  "paired_baseline_f1": 0.7658131449319667,
+  "paired_delta_vs_fixed": 0.005563236365034422,
+  "paired_ci": [-0.000020141507872716937, 0.011260633818327703],
+  "wins_ties_losses": [17, 3, 12],
+  "wilcoxon_p": 0.09376815277040264,
+  "canonical_seed42_f1": 0.7592592592592593,
+  "threshold": 0.5
+}

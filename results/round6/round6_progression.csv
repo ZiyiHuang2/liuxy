@@ -1,0 +1,6 @@
+stage,method,evaluation,f1,auc,prauc,status
+Reliable prior baseline,SNV + ANOVA Top-125 + Easy-50,prior 16 unseen seeds,0.7615,0.8971,0.8268,formal baseline
+Round 6 confirmation,Fixed Top-125 branch,32 new seeds,0.7658131449319667,0.8992913403346386,0.8296774416591678,paired baseline
+Round 6 confirmation,Feature-diverse 3-way Easy ensemble,32 new seeds,0.7713763812970011,0.9017888928444286,0.8318630489116546,best repeated candidate
+Canonical check,Fixed Top-125 branch,seed 42,0.7321428571428571,0.8873264471342115,0.8204519440806819,single split only
+Canonical check,Feature-diverse 3-way Easy ensemble,seed 42,0.7592592592592593,0.8883944464222141,0.826355102900655,single split only

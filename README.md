@@ -1,154 +1,90 @@
 # VOC EasyEnsemble Classification
 
-A complete, reproducible binary VOC classification project built around the most reliable configuration found during repeated small-sample experiments:
+A complete, reproducible binary VOC classification project for a high-dimensional, small-sample setting:
 
-```text
-SNV + ANOVA Top-125 + EasyEnsemble-50 + fixed threshold 0.5
-```
+- 159 samples;
+- 445 VOC features;
+- class counts 106 vs 53;
+- original MATLAB dataset included in the repository.
 
-The repository directly includes the original MATLAB dataset, reusable Python package, command-line tools, tests, reference results and methodology notes.
+The project now contains two frozen model lines.
 
-## Reference result
+| Model | Pipeline | Status | Repeated-CV F1 |
+|---|---|---|---:|
+| Stable baseline | SNV → ANOVA Top-125 → EasyEnsemble-50 → threshold 0.5 | simplest reliable model | about 0.76 |
+| **Feature-diverse enhancement** | SNV → three VOC subspace branches → 3 × EasyEnsemble-50 → equal probability mean → threshold 0.5 | **current highest confirmed candidate** | **0.7714 ± 0.0286** |
 
-Frozen configuration evaluated with 5-fold outer cross-validation over 16 independent shuffle seeds:
+The enhanced model is numerically stronger, but its paired 32-seed advantage over the fixed Top-125 baseline is small and not conventionally significant (`ΔF1 = +0.00556`, 95% CI approximately `[-0.00002, 0.01126]`, Wilcoxon `p = 0.0938`). It should be described as the current best enhanced candidate, not as conclusively superior.
 
-| Metric | Result |
-|---|---:|
-| F1 | **0.7615 ± 0.0357** |
-| ROC-AUC | **0.8971** |
-| PR-AUC | **0.8268** |
-| Lowest seed F1 | 0.6923 |
-| Highest seed F1 | 0.8214 |
+## Feature-diverse model
 
-These are repeated out-of-fold results, not the best single split. Full tables are in [`results/`](results/).
+The enhanced model trains three branches inside every training fold:
 
-## Why this method
+1. **Fixed strong panel:** ANOVA Top-125;
+2. **Weighted exploration:** each balanced submodel samples 150 of all 445 VOCs without replacement, using training-fold ANOVA scores as probabilities;
+3. **Top-pool diversity:** each balanced submodel samples 125 VOCs from the training-fold ANOVA Top-250.
 
-The dataset has 159 samples, 445 VOC features and a 106:53 class imbalance. The final method focuses on the actual statistical constraints:
+Each branch contains 50 AdaBoost models with depth-1 trees. Every submodel receives all positive samples and an equally sized random subset of negatives. The three branch probabilities are averaged and classified with a fixed threshold of 0.5.
 
-- **SNV** reduces sample-wide intensity differences;
-- **ANOVA Top-125** limits the high-dimensional search space inside each training fold;
-- **EasyEnsemble-50** repeatedly trains on all positives and different balanced negative subsets;
-- **fixed 0.5 threshold** supports independent single-sample prediction without test-cohort tuning.
+This extends the original EasyEnsemble in two dimensions:
+
+- sample diversity through repeated majority-class subsampling;
+- feature diversity through repeated high-evidence VOC subspaces.
+
+## Confirmed round-6 result
+
+Thirty-two previously unused shuffle seeds were evaluated with five-fold outer cross-validation. All SNV transformations, ANOVA scores and feature subspaces were fitted using only the current outer training fold.
+
+| Method | F1 mean | F1 std | Minimum F1 | ROC-AUC | PR-AUC |
+|---|---:|---:|---:|---:|---:|
+| **Feature-diverse three-branch ensemble** | **0.7714** | 0.0286 | **0.7037** | **0.9018** | **0.8319** |
+| Fixed ANOVA Top-125 EasyEnsemble-50 | 0.7658 | 0.0308 | 0.6852 | 0.8993 | 0.8297 |
+
+On the canonical `seed=42` split, the enhanced model reached F1 `0.7593`, compared with `0.7321` for the fixed branch. A single seed is not used as the primary claim; the 32-seed paired result is the main evidence.
 
 ## Repository structure
 
 ```text
 .
-├── configs/default.json
-├── data/
-│   ├── voc_dataset_1+2_vs_3.mat
-│   └── README.md
-├── docs/
-│   ├── METHOD.md
-│   ├── RESULTS.md
-│   └── EXPERIMENT_HISTORY.md
-├── results/
-│   ├── reliable_16seed_rows.csv
-│   ├── reliable_16seed_summary.csv
-│   ├── paired_tests.csv
-│   └── feature_selection_stability.csv
-├── scripts/
+├── configs/
+│   ├── default.json
+│   └── feature_diverse.json
+├── data/voc_dataset_1+2_vs_3.mat
+├── docs/ROUND6_EXPLORATION.md
+├── results/round6/
+│   ├── confirm32_rows_*.csv
+│   ├── confirm32_summary.csv
+│   ├── confirm32_paired.csv
+│   └── experiment_manifest.json
 ├── src/voc_easyensemble/
-├── tests/
-├── Makefile
-├── pyproject.toml
-└── requirements.txt
+│   ├── model.py
+│   └── feature_diverse.py
+└── tests/
 ```
 
 ## Installation
 
 ```bash
 python -m venv .venv
-```
-
-Linux/macOS:
-
-```bash
-source .venv/bin/activate
-```
-
-Windows PowerShell:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-Install:
-
-```bash
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-## Inspect the included data
-
-```bash
-voc-easy inspect
-```
-
-Expected core properties:
-
-```text
-samples: 159
-features: 445
-class 0: 106
-class 1: 53
-```
-
-Verify the bundled dataset hash:
-
-```bash
-python scripts/materialize_dataset.py
-```
-
-Expected SHA-256:
-
-```text
-5abfb996395fc9814cddb266cbde93efab7993dc551450507312469ab0ef2635
-```
-
-## Reproduce the reliable repeated-CV experiment
+## Reproduce the enhanced 32-seed experiment
 
 ```bash
 voc-easy evaluate \
-  --data data/voc_dataset_1+2_vs_3.mat \
-  --config configs/default.json \
-  --seeds 71001:71016 \
-  --output outputs/reliable_16seed
+  --config configs/feature_diverse.json \
+  --seeds 85001:85016,86001:86016 \
+  --output outputs/feature_diverse_32seed
 ```
 
-This writes per-seed metrics, per-fold metrics, complete OOF predictions and a JSON summary.
-
-A faster single-seed check:
+## Train and predict
 
 ```bash
-voc-easy evaluate --seeds 42 --output outputs/smoke
+voc-easy train --config configs/feature_diverse.json --model artifacts/voc_feature_diverse.joblib
+voc-easy predict --model artifacts/voc_feature_diverse.joblib --input new_samples.csv --output outputs/predictions.csv
 ```
-
-## Train the final deployable model
-
-```bash
-voc-easy train \
-  --data data/voc_dataset_1+2_vs_3.mat \
-  --config configs/default.json \
-  --model artifacts/voc_easyensemble.joblib
-```
-
-The command also writes a JSON metadata file containing the dataset hash, configuration and selected VOC feature names.
-
-## Predict new samples
-
-Prepare a CSV containing the same 445 feature-name columns as the bundled dataset, then run:
-
-```bash
-voc-easy predict \
-  --model artifacts/voc_easyensemble.joblib \
-  --input path/to/new_samples.csv \
-  --output outputs/predictions.csv
-```
-
-The output adds `positive_probability` and `prediction` columns.
 
 ## Tests
 
@@ -156,17 +92,14 @@ The output adds `positive_probability` and `prediction` columns.
 pytest
 ```
 
-## Data provenance
+## Important limitation
 
-The bundled MAT file was imported from the original project repository by `.github/workflows/import-dataset.yml`. The workflow verifies the fixed SHA-256 before committing the binary file. The dataset stored here has Git blob SHA `d72ecbd7e4770375b76a37224a919c517e0befc3`, matching the source file.
-
-## Data and evaluation limitation
-
-The included dataset has no subject identifiers, batch labels, device metadata or sampling dates. Current cross-validation is row-level and cannot establish subject-level independence or exclude hidden batch effects. This limitation should remain explicit in any report or publication.
+The dataset does not include subject identifiers, collection batches, devices or sampling dates. Cross-validation is row-level and cannot establish subject-level independence or exclude hidden batch effects.
 
 ## Documentation
 
 - [Method details](docs/METHOD.md)
-- [Reference and exploratory results](docs/RESULTS.md)
-- [Model-development history](docs/EXPERIMENT_HISTORY.md)
+- [Results](docs/RESULTS.md)
+- [Experiment history](docs/EXPERIMENT_HISTORY.md)
+- [Round-6 report](docs/ROUND6_EXPLORATION.md)
 - [Dataset card](data/README.md)

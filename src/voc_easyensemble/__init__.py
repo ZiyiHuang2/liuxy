@@ -1,6 +1,7 @@
-"""Reliable small-sample VOC classification pipeline."""
+"""Reliable small-sample VOC classification pipelines."""
 
 from .data import VOCDataset, load_voc_mat
+from .feature_diverse import FeatureDiverseConfig, FeatureDiverseEasyEnsemble
 from .model import EasyEnsembleConfig, VOCEasyEnsemble
 
 __all__ = [
@@ -8,6 +9,8 @@ __all__ = [
     "load_voc_mat",
     "EasyEnsembleConfig",
     "VOCEasyEnsemble",
+    "FeatureDiverseConfig",
+    "FeatureDiverseEasyEnsemble",
 ]
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

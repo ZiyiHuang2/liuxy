@@ -1,4 +1,5 @@
 {
+  "model_type": "fixed",
   "top_k": 125,
   "n_submodels": 50,
   "n_estimators": 50,
