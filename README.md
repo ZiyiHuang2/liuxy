@@ -6,7 +6,7 @@ A complete, reproducible binary VOC classification project built around the most
 SNV + ANOVA Top-125 + EasyEnsemble-50 + fixed threshold 0.5
 ```
 
-The repository includes the complete original MATLAB dataset payload (losslessly split into base64 parts), reusable Python package, command-line tools, tests, reference results and methodology notes.
+The repository directly includes the original MATLAB dataset, reusable Python package, command-line tools, tests, reference results and methodology notes.
 
 ## Reference result
 
@@ -37,7 +37,7 @@ The dataset has 159 samples, 445 VOC features and a 106:53 class imbalance. The 
 .
 ├── configs/default.json
 ├── data/
-│   ├── voc_dataset_1+2_vs_3.mat.b64.part01 ... part10
+│   ├── voc_dataset_1+2_vs_3.mat
 │   └── README.md
 ├── docs/
 │   ├── METHOD.md
@@ -48,6 +48,7 @@ The dataset has 159 samples, 445 VOC features and a 106:53 class imbalance. The 
 │   ├── reliable_16seed_summary.csv
 │   ├── paired_tests.csv
 │   └── feature_selection_stability.csv
+├── scripts/
 ├── src/voc_easyensemble/
 ├── tests/
 ├── Makefile
@@ -80,12 +81,6 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-The loader automatically decodes the numbered dataset parts. A physical `.mat` file can optionally be recreated with:
-
-```bash
-python scripts/materialize_dataset.py
-```
-
 ## Inspect the included data
 
 ```bash
@@ -99,6 +94,18 @@ samples: 159
 features: 445
 class 0: 106
 class 1: 53
+```
+
+Verify the bundled dataset hash:
+
+```bash
+python scripts/materialize_dataset.py
+```
+
+Expected SHA-256:
+
+```text
+5abfb996395fc9814cddb266cbde93efab7993dc551450507312469ab0ef2635
 ```
 
 ## Reproduce the reliable repeated-CV experiment
@@ -148,6 +155,10 @@ The output adds `positive_probability` and `prediction` columns.
 ```bash
 pytest
 ```
+
+## Data provenance
+
+The bundled MAT file was imported from the original project repository by `.github/workflows/import-dataset.yml`. The workflow verifies the fixed SHA-256 before committing the binary file. The dataset stored here has Git blob SHA `d72ecbd7e4770375b76a37224a919c517e0befc3`, matching the source file.
 
 ## Data and evaluation limitation
 
