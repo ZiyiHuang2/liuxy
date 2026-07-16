@@ -1,6 +1,10 @@
 # Dataset
 
-This repository includes the full `voc_dataset_1+2_vs_3.mat` payload as numbered base64 parts so the experiments are self-contained. The Python loader decodes the parts transparently when the raw MAT file is absent.
+The repository directly includes the complete original file:
+
+```text
+voc_dataset_1+2_vs_3.mat
+```
 
 ## Schema
 
@@ -15,28 +19,38 @@ Label mapping:
 - `0`: original classes 1 and 2 combined, 106 samples
 - `1`: original class 3, 53 samples
 
+## Integrity
+
+File size:
+
+```text
+341,128 bytes
+```
+
 SHA-256:
 
 ```text
 5abfb996395fc9814cddb266cbde93efab7993dc551450507312469ab0ef2635
 ```
 
-## Storage format
-
-The 341,128-byte MAT payload is stored losslessly as:
+Git blob SHA:
 
 ```text
-voc_dataset_1+2_vs_3.mat.b64.part01
-...
-voc_dataset_1+2_vs_3.mat.b64.part10
+d72ecbd7e4770375b76a37224a919c517e0befc3
 ```
 
-The package loads these parts automatically. To recreate the physical MAT file:
+The blob SHA matches the source file in `liu2690/my-project`.
+
+Run the integrity check with:
 
 ```bash
 python scripts/materialize_dataset.py
 ```
 
+## Provenance
+
+`.github/workflows/import-dataset.yml` downloaded the file from the original public project repository, checked the fixed SHA-256 and committed the verified binary to this repository. The experiment code does not require network access after cloning this repository.
+
 ## Important limitation
 
-The file does not contain subject identifiers, sampling batch, device, date, or other grouping metadata. Cross-validation therefore operates at the row level. It cannot prove subject-level independence or rule out hidden batch effects.
+The file does not contain subject identifiers, sampling batch, device, date or other grouping metadata. Cross-validation therefore operates at the row level. It cannot prove subject-level independence or rule out hidden batch effects.
