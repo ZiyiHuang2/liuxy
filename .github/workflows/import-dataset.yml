@@ -1,0 +1,42 @@
+name: Import bundled VOC dataset
+
+on:
+  push:
+    paths:
+      - .github/workflows/import-dataset.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-dataset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download source MAT file
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          curl --fail --location --retry 3 \
+            'https://raw.githubusercontent.com/liu2690/my-project/main/data/voc_dataset_1%2B2_vs_3.mat' \
+            --output data/voc_dataset_1+2_vs_3.mat
+          echo '5abfb996395fc9814cddb266cbde93efab7993dc551450507312469ab0ef2635  data/voc_dataset_1+2_vs_3.mat' \
+            | sha256sum --check --strict
+
+      - name: Commit dataset
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/voc_dataset_1+2_vs_3.mat
+          if git diff --cached --quiet; then
+            echo 'Dataset already present and unchanged.'
+            exit 0
+          fi
+          git commit -m 'data: add complete VOC MAT dataset'
+          git push
