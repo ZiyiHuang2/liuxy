@@ -1,0 +1,8 @@
+{
+  "normalization": "SNV",
+  "feature_selection": "ANOVA",
+  "top_k_features": 125,
+  "ensemble_size": 50,
+  "base_estimator": "decision_stump_adaboost",
+  "threshold": 0.5
+}
