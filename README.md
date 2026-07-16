@@ -1,85 +1,161 @@
 # VOC EasyEnsemble Classification
 
-这是小样本 VOC 二分类项目的最终稳健实现。
+A complete, reproducible binary VOC classification project built around the most reliable configuration found during repeated small-sample experiments:
 
-当前主模型：
-
-> **SNV + ANOVA Top-125 + EasyEnsemble-50 + fixed threshold 0.5**
-
-## Motivation
-
-原始版本尝试使用 MLP/CNN 直接学习 VOC 特征，但该任务具有明显的小样本、高维、不平衡特点：
-
-- 159 个样本
-- 445 个 VOC 特征
-- 正负样本比例约 1:2
-
-因此最终方案转向稳定的小样本表格学习流程。
-
-## Pipeline
-
-```
-VOC matrix
-  -> sample-wise SNV normalization
-  -> feature selection inside training folds (ANOVA Top-125)
-  -> 50 balanced training subsets
-  -> AdaBoost decision stumps
-  -> probability averaging
-  -> threshold = 0.5
+```text
+SNV + ANOVA Top-125 + EasyEnsemble-50 + fixed threshold 0.5
 ```
 
-## Reliable Results
+The repository includes the complete original MATLAB dataset payload (losslessly split into base64 parts), reusable Python package, command-line tools, tests, reference results and methodology notes.
 
-在 16 个未参与模型选择的重复外层验证随机种子上：
+## Reference result
+
+Frozen configuration evaluated with 5-fold outer cross-validation over 16 independent shuffle seeds:
 
 | Metric | Result |
 |---|---:|
-| F1 | 0.7615 ± 0.0357 |
-| ROC-AUC | 0.8971 |
-| PR-AUC | 0.8268 |
+| F1 | **0.7615 ± 0.0357** |
+| ROC-AUC | **0.8971** |
+| PR-AUC | **0.8268** |
+| Lowest seed F1 | 0.6923 |
+| Highest seed F1 | 0.8214 |
 
-## Project Structure
+These are repeated out-of-fold results, not the best single split. Full tables are in [`results/`](results/).
 
-```
+## Why this method
+
+The dataset has 159 samples, 445 VOC features and a 106:53 class imbalance. The final method focuses on the actual statistical constraints:
+
+- **SNV** reduces sample-wide intensity differences;
+- **ANOVA Top-125** limits the high-dimensional search space inside each training fold;
+- **EasyEnsemble-50** repeatedly trains on all positives and different balanced negative subsets;
+- **fixed 0.5 threshold** supports independent single-sample prediction without test-cohort tuning.
+
+## Repository structure
+
+```text
 .
-├── src/voc_easyensemble
-│   ├── preprocessing.py
-│   ├── model.py
-│   ├── train.py
-│   ├── evaluate.py
-│   └── predict.py
-├── configs
-├── docs
-├── results
-└── tests
+├── configs/default.json
+├── data/
+│   ├── voc_dataset_1+2_vs_3.mat.b64.part01 ... part10
+│   └── README.md
+├── docs/
+│   ├── METHOD.md
+│   ├── RESULTS.md
+│   └── EXPERIMENT_HISTORY.md
+├── results/
+│   ├── reliable_16seed_rows.csv
+│   ├── reliable_16seed_summary.csv
+│   ├── paired_tests.csv
+│   └── feature_selection_stability.csv
+├── src/voc_easyensemble/
+├── tests/
+├── Makefile
+├── pyproject.toml
+└── requirements.txt
 ```
 
-## Usage
+## Installation
+
+```bash
+python -m venv .venv
+```
+
+Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
 
 Install:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
 ```
 
-Train:
+The loader automatically decodes the numbered dataset parts. A physical `.mat` file can optionally be recreated with:
 
 ```bash
-python -m voc_easyensemble.train --config configs/default.json
+python scripts/materialize_dataset.py
 ```
 
-Evaluate:
+## Inspect the included data
 
 ```bash
-python -m voc_easyensemble.evaluate
+voc-easy inspect
 ```
 
-## Reproducibility
+Expected core properties:
 
-All feature selection and preprocessing operations must be fitted only on training folds. Test folds are never used for feature selection or model selection.
+```text
+samples: 159
+features: 445
+class 0: 106
+class 1: 53
+```
 
-See:
+## Reproduce the reliable repeated-CV experiment
 
-- `docs/METHOD.md`
-- `docs/RESULTS.md`
-- `results/reliable_round5/`
+```bash
+voc-easy evaluate \
+  --data data/voc_dataset_1+2_vs_3.mat \
+  --config configs/default.json \
+  --seeds 71001:71016 \
+  --output outputs/reliable_16seed
+```
+
+This writes per-seed metrics, per-fold metrics, complete OOF predictions and a JSON summary.
+
+A faster single-seed check:
+
+```bash
+voc-easy evaluate --seeds 42 --output outputs/smoke
+```
+
+## Train the final deployable model
+
+```bash
+voc-easy train \
+  --data data/voc_dataset_1+2_vs_3.mat \
+  --config configs/default.json \
+  --model artifacts/voc_easyensemble.joblib
+```
+
+The command also writes a JSON metadata file containing the dataset hash, configuration and selected VOC feature names.
+
+## Predict new samples
+
+Prepare a CSV containing the same 445 feature-name columns as the bundled dataset, then run:
+
+```bash
+voc-easy predict \
+  --model artifacts/voc_easyensemble.joblib \
+  --input path/to/new_samples.csv \
+  --output outputs/predictions.csv
+```
+
+The output adds `positive_probability` and `prediction` columns.
+
+## Tests
+
+```bash
+pytest
+```
+
+## Data and evaluation limitation
+
+The included dataset has no subject identifiers, batch labels, device metadata or sampling dates. Current cross-validation is row-level and cannot establish subject-level independence or exclude hidden batch effects. This limitation should remain explicit in any report or publication.
+
+## Documentation
+
+- [Method details](docs/METHOD.md)
+- [Reference and exploratory results](docs/RESULTS.md)
+- [Model-development history](docs/EXPERIMENT_HISTORY.md)
+- [Dataset card](data/README.md)
