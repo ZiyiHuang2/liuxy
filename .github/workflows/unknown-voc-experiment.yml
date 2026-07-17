@@ -74,3 +74,5 @@ jobs:
         with:
           name: unknown-voc-experiment
           path: results/unknown_voc
+
+# Triggered after workflow installation so the push event is observed.
