@@ -26,3 +26,5 @@ jobs:
           git commit -m 'ci: confirm Unknown VOC workflow execution'
           git pull --rebase origin main
           git push origin HEAD:main
+
+# Trigger probe.
