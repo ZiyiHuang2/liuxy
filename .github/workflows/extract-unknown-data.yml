@@ -116,3 +116,5 @@ jobs:
           git add results/unknown_voc_extract
           git commit -m 'data: extract retained Unknown VOC matrices'
           git push
+
+# Trigger extraction after workflow installation.
