@@ -44,12 +44,13 @@ jobs:
       - name: Run discovery
         run: |
           python - <<'PY'
-          import importlib.util, json
+          import importlib.util, json, sys
           from pathlib import Path
           import numpy as np
 
-          spec = importlib.util.spec_from_file_location('u', 'experiments/unknown_features_module.py')
+          spec = importlib.util.spec_from_file_location('unknown_voc_module', 'experiments/unknown_features_module.py')
           u = importlib.util.module_from_spec(spec)
+          sys.modules[spec.name] = u
           spec.loader.exec_module(u)
 
           out = Path('results/unknown_voc_discovery')
@@ -90,5 +91,3 @@ jobs:
           git add results/unknown_voc_discovery
           git commit -m 'experiment: discover retained Unknown VOC candidates'
           git push
-
-# Trigger after workflow installation.
