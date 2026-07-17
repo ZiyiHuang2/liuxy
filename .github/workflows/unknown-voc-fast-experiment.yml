@@ -7,81 +7,12 @@ on:
       - .github/workflows/unknown-voc-fast-experiment.yml
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 concurrency:
   group: unknown-voc-autonomous-experiment
   cancel-in-progress: true
 
 jobs:
-  experiment:
-    if: github.actor != 'github-actions[bot]'
+  cancel-superseded-run:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-      - name: Restore and patch experiment script
-        run: |
-          base64 -d experiments/unknown_features_experiment.py.gz.b64 | gzip -d > experiments/unknown_features_fast.py
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('experiments/unknown_features_fast.py')
-          s = p.read_text(encoding='utf-8')
-          replacements = {
-            'discovery_spec = EnsembleSpec(n_submodels=15, n_estimators=30)': 'discovery_spec = EnsembleSpec(n_submodels=8, n_estimators=20)',
-            'discovery_seeds = list(range(97001, 97007))': 'discovery_seeds = list(range(100001, 100005))',
-            'confirm_spec = EnsembleSpec(n_submodels=50, n_estimators=50)': 'confirm_spec = EnsembleSpec(n_submodels=30, n_estimators=30)',
-            'confirm_seeds_1 = list(range(98001, 98017))': 'confirm_seeds_1 = list(range(101001, 101009))',
-            'confirm_seeds_2 = list(range(99001, 99017))': 'confirm_seeds_2 = list(range(102001, 102009))',
-            'float(best_candidate["f1_mean"]) - baseline_mean >= 0.003': 'float(best_candidate["f1_mean"]) - baseline_mean >= 0.005',
-          }
-          for old, new in replacements.items():
-              if old not in s:
-                  raise RuntimeError(f'patch target missing: {old}')
-              s = s.replace(old, new)
-          p.write_text(s, encoding='utf-8')
-          PY
-          python -m py_compile experiments/unknown_features_fast.py
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m pip install openpyxl tabulate
-      - name: Download original raw Excel
-        run: |
-          mkdir -p data/raw
-          python - <<'PY'
-          from pathlib import Path
-          from urllib.request import urlopen
-          url = 'https://raw.githubusercontent.com/liu2690/my-project/7f49bec2bc970a1e9012abbceb39e1b6e2965a9a/data/1%E3%80%812%E3%80%813.xlsx'
-          target = Path('data/raw/1、2、3.xlsx')
-          target.write_bytes(urlopen(url, timeout=120).read())
-          print(target, target.stat().st_size)
-          PY
-      - name: Run autonomous discovery and confirmation
-        run: |
-          python experiments/unknown_features_fast.py \
-            --raw-excel 'data/raw/1、2、3.xlsx' \
-            --current-mat data/voc_dataset_1+2_vs_3.mat \
-            --output results/unknown_voc_fast \
-            --n-jobs 2
-      - name: Commit complete results
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add results/unknown_voc_fast
-          git commit -m 'experiment: fast retained Unknown VOC exploration'
-          git push
-      - uses: actions/upload-artifact@v4
-        with:
-          name: unknown-voc-fast-experiment
-          path: results/unknown_voc_fast
-
-# Trigger after workflow installation.
+      - run: echo 'Superseded by checkpointed discovery and frozen-candidate confirmation.'
