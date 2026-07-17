@@ -1,0 +1,44 @@
+name: Unknown VOC execution diagnostics
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/unknown-voc-diagnose.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unknown-voc-diagnostics
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Mark workflow start
+        run: |
+          mkdir -p results/unknown_voc_diagnostics
+          echo started > results/unknown_voc_diagnostics/status.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add results/unknown_voc_diagnostics/status.txt
+          git commit -m 'ci: Unknown VOC diagnostics started'
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Restore and compile payload
+        run: |
+          base64 -d experiments/unknown_features_experiment.py.gz.b64 | gzip -d > experiments/unknown_features_diagnostic.py
+          python -m py_compile experiments/unknown_features_diagnostic.py
+      - name: Mark payload success
+        run: |
+          echo payload_ok > results/unknown_voc_diagnostics/status.txt
+          git add results/unknown_voc_diagnostics/status.txt
+          git commit -m 'ci: Unknown VOC payload validated'
+          git pull --rebase origin main
+          git push origin HEAD:main
