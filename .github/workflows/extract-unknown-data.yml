@@ -1,0 +1,118 @@
+name: Extract Unknown VOC matrices
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/extract-unknown-data.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install numpy pandas scipy openpyxl
+      - name: Extract matrices
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.request import urlopen
+          import base64, hashlib, json
+          import numpy as np
+          import pandas as pd
+          from scipy.io import loadmat
+
+          root = Path('.')
+          out = root / 'results' / 'unknown_voc_extract'
+          out.mkdir(parents=True, exist_ok=True)
+          raw_path = out / 'raw.xlsx'
+          url = 'https://raw.githubusercontent.com/liu2690/my-project/7f49bec2bc970a1e9012abbceb39e1b6e2965a9a/data/1%E3%80%812%E3%80%813.xlsx'
+          raw_path.write_bytes(urlopen(url, timeout=120).read())
+
+          df = pd.read_excel(raw_path, engine='openpyxl')
+          ids = np.asarray(df.columns[1:].tolist(), dtype=object)
+          names = np.asarray([str(v).strip() for v in df.iloc[0, 1:].to_numpy()], dtype=str)
+          X = df.iloc[1:, 1:].to_numpy(dtype=np.float64)
+          classes = df.iloc[1:, 0].to_numpy(dtype=np.int64)
+          y = (classes == 3).astype(np.int64)
+
+          def filt(mask):
+              X0, ids0, names0 = X[:, mask], ids[mask], names[mask]
+              means = X0.mean(axis=0)
+              keep1 = means > np.percentile(means, 40)
+              X1 = np.log1p(X0[:, keep1])
+              ids1, names1 = ids0[keep1], names0[keep1]
+              iqr = np.percentile(X1, 75, axis=0) - np.percentile(X1, 25, axis=0)
+              keep2 = iqr >= np.percentile(iqr, 25)
+              X2 = X1[:, keep2]
+              unique = np.asarray([f'{i}_{n}' for i, n in zip(ids1[keep2], names1[keep2])], dtype=str)
+              return X2, unique, int(X0.shape[1]), int(X1.shape[1])
+
+          unknown = names == 'Unknown'
+          known_X, known_names, known_initial, known_abund = filt(~unknown)
+          combined_X, combined_names, combined_initial, combined_abund = filt(np.ones(len(names), dtype=bool))
+          unknown_X, unknown_names, unknown_initial, unknown_abund = filt(unknown)
+
+          current = loadmat(root / 'data' / 'voc_dataset_1+2_vs_3.mat')
+          current_X = np.asarray(current['X'], dtype=np.float64)
+          current_y = np.asarray(current['y']).reshape(-1).astype(np.int64)
+          maxdiff = float(np.max(np.abs(known_X-current_X))) if known_X.shape == current_X.shape else None
+          same_y = bool(np.array_equal(y, current_y))
+
+          audit = {
+              'raw_sha256': hashlib.sha256(raw_path.read_bytes()).hexdigest(),
+              'n_samples': int(X.shape[0]),
+              'n_raw_features': int(X.shape[1]),
+              'n_unknown_exact': int(unknown.sum()),
+              'n_known_raw': int((~unknown).sum()),
+              'known_after_abundance': known_abund,
+              'known_final': int(known_X.shape[1]),
+              'combined_after_abundance': combined_abund,
+              'combined_final': int(combined_X.shape[1]),
+              'unknown_after_abundance': unknown_abund,
+              'unknown_final': int(unknown_X.shape[1]),
+              'known_current_shape_match': bool(known_X.shape == current_X.shape),
+              'known_current_max_abs_diff': maxdiff,
+              'labels_match': same_y,
+              'class_counts': {str(int(k)): int(v) for k,v in zip(*np.unique(y, return_counts=True))},
+          }
+          (out / 'audit.json').write_text(json.dumps(audit, indent=2, ensure_ascii=False), encoding='utf-8')
+
+          payload_path = out / 'payload.npz'
+          np.savez_compressed(payload_path, combined_X=combined_X, combined_names=combined_names,
+                              unknown_X=unknown_X, unknown_names=unknown_names, y=y)
+          encoded = base64.b64encode(payload_path.read_bytes()).decode('ascii')
+          size = 50000
+          parts = []
+          for index, start in enumerate(range(0, len(encoded), size)):
+              name = f'payload.part{index:03d}.txt'
+              (out / name).write_text(encoded[start:start+size], encoding='ascii')
+              parts.append(name)
+          manifest = {'encoding':'base64','format':'npz','part_size':size,'parts':parts,
+                      'payload_sha256':hashlib.sha256(payload_path.read_bytes()).hexdigest(),
+                      'payload_bytes':payload_path.stat().st_size}
+          (out / 'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
+          raw_path.unlink()
+          payload_path.unlink()
+          print(json.dumps(audit, indent=2, ensure_ascii=False))
+          print(manifest)
+          PY
+      - name: Commit extracted matrices
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add results/unknown_voc_extract
+          git commit -m 'data: extract retained Unknown VOC matrices'
+          git push
