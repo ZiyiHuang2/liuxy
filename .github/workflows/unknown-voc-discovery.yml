@@ -31,64 +31,78 @@ jobs:
         run: |
           python -m pip install -e .
           python -m pip install openpyxl tabulate
-      - name: Restore experiment module and raw Excel
+      - name: Restore module, raw Excel and matrices
         run: |
           base64 -d experiments/unknown_features_experiment.py.gz.b64 | gzip -d > experiments/unknown_features_module.py
           python - <<'PY'
-          from pathlib import Path
-          from urllib.request import urlopen
-          target = Path('data/raw/1、2、3.xlsx')
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_bytes(urlopen('https://raw.githubusercontent.com/liu2690/my-project/7f49bec2bc970a1e9012abbceb39e1b6e2965a9a/data/1%E3%80%812%E3%80%813.xlsx', timeout=120).read())
-          PY
-      - name: Run discovery
-        run: |
-          python - <<'PY'
           import importlib.util, json, sys
           from pathlib import Path
+          from urllib.request import urlopen
           import numpy as np
 
+          raw = Path('.work/1、2、3.xlsx')
+          raw.parent.mkdir(parents=True, exist_ok=True)
+          raw.write_bytes(urlopen('https://raw.githubusercontent.com/liu2690/my-project/7f49bec2bc970a1e9012abbceb39e1b6e2965a9a/data/1%E3%80%812%E3%80%813.xlsx', timeout=120).read())
           spec = importlib.util.spec_from_file_location('unknown_voc_module', 'experiments/unknown_features_module.py')
           u = importlib.util.module_from_spec(spec)
           sys.modules[spec.name] = u
           spec.loader.exec_module(u)
-
-          out = Path('results/unknown_voc_discovery')
-          out.mkdir(parents=True, exist_ok=True)
-          Xraw, y, ids, names = u.load_raw_excel(Path('data/raw/1、2、3.xlsx'))
+          Xraw, y, ids, names = u.load_raw_excel(raw)
           unknown_mask = names == 'Unknown'
           known = u.legacy_filter(Xraw, ids, names, ~unknown_mask, 'known')
           combined = u.legacy_filter(Xraw, ids, names, np.ones(len(names), dtype=bool), 'combined')
           unknown = u.legacy_filter(Xraw, ids, names, unknown_mask, 'unknown')
           appended = np.column_stack([known['X'], unknown['X']])
-          matrices = {'known': known['X'], 'combined': combined['X'], 'unknown': unknown['X'], 'appended': appended}
-
-          audit = {
-            'n_samples': int(Xraw.shape[0]),
-            'n_raw_features': int(Xraw.shape[1]),
-            'n_unknown': int(unknown_mask.sum()),
-            'known_final': int(known['X'].shape[1]),
-            'combined_final': int(combined['X'].shape[1]),
-            'unknown_final': int(unknown['X'].shape[1]),
-            'appended_final': int(appended.shape[1]),
-          }
-          (out/'audit.json').write_text(json.dumps(audit, indent=2), encoding='utf-8')
-          seeds = [100001,100002,100003,100004]
-          ens = u.EnsembleSpec(n_submodels=8, n_estimators=20)
-          rows = u.run_parallel(seeds, matrices, y, ens, None, 2)
-          summary = u.summarize(rows)
-          selected = summary.loc[summary['method']!='known_diverse','method'].head(2).tolist()
-          rows.to_csv(out/'discovery_rows.csv', index=False)
-          summary.to_csv(out/'discovery_summary.csv', index=False)
-          (out/'selected.json').write_text(json.dumps({'baseline':'known_diverse','selected':selected,'seeds':seeds},indent=2),encoding='utf-8')
-          print(summary.to_string(index=False))
-          print('selected', selected)
+          np.savez_compressed('.work/matrices.npz', known=known['X'], combined=combined['X'], unknown=unknown['X'], appended=appended, y=y)
+          out = Path('results/unknown_voc_discovery')
+          out.mkdir(parents=True, exist_ok=True)
+          audit = {'n_samples':int(Xraw.shape[0]),'n_raw_features':int(Xraw.shape[1]),'n_unknown':int(unknown_mask.sum()),'known_final':int(known['X'].shape[1]),'combined_final':int(combined['X'].shape[1]),'unknown_final':int(unknown['X'].shape[1]),'appended_final':int(appended.shape[1])}
+          (out/'audit.json').write_text(json.dumps(audit,indent=2),encoding='utf-8')
           PY
-      - name: Commit discovery results
+      - name: Run first two discovery seeds
+        run: |
+          python - <<'PY'
+          import importlib.util, sys
+          from pathlib import Path
+          import numpy as np
+          spec = importlib.util.spec_from_file_location('unknown_voc_module', 'experiments/unknown_features_module.py')
+          u = importlib.util.module_from_spec(spec); sys.modules[spec.name]=u; spec.loader.exec_module(u)
+          d=np.load('.work/matrices.npz')
+          matrices={k:d[k] for k in ['known','combined','unknown','appended']}
+          rows=u.run_parallel([100001,100002],matrices,d['y'],u.EnsembleSpec(n_submodels=8,n_estimators=20),None,2)
+          rows.to_csv('results/unknown_voc_discovery/discovery_batch1_rows.csv',index=False)
+          u.summarize(rows).to_csv('results/unknown_voc_discovery/discovery_batch1_summary.csv',index=False)
+          PY
+      - name: Commit discovery checkpoint
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add results/unknown_voc_discovery
+          git add results/unknown_voc_discovery/audit.json results/unknown_voc_discovery/discovery_batch1_rows.csv results/unknown_voc_discovery/discovery_batch1_summary.csv
+          git commit -m 'experiment: checkpoint Unknown VOC discovery'
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Run final two discovery seeds
+        run: |
+          python - <<'PY'
+          import importlib.util,json,sys
+          import numpy as np
+          import pandas as pd
+          spec=importlib.util.spec_from_file_location('unknown_voc_module','experiments/unknown_features_module.py')
+          u=importlib.util.module_from_spec(spec);sys.modules[spec.name]=u;spec.loader.exec_module(u)
+          d=np.load('.work/matrices.npz'); matrices={k:d[k] for k in ['known','combined','unknown','appended']}
+          rows2=u.run_parallel([100003,100004],matrices,d['y'],u.EnsembleSpec(n_submodels=8,n_estimators=20),None,2)
+          rows1=pd.read_csv('results/unknown_voc_discovery/discovery_batch1_rows.csv')
+          rows=pd.concat([rows1,rows2],ignore_index=True)
+          summary=u.summarize(rows)
+          selected=summary.loc[summary['method']!='known_diverse','method'].head(2).tolist()
+          rows.to_csv('results/unknown_voc_discovery/discovery_rows.csv',index=False)
+          summary.to_csv('results/unknown_voc_discovery/discovery_summary.csv',index=False)
+          with open('results/unknown_voc_discovery/selected.json','w') as f: json.dump({'baseline':'known_diverse','selected':selected,'seeds':[100001,100002,100003,100004]},f,indent=2)
+          print(summary.to_string(index=False)); print('selected',selected)
+          PY
+      - name: Commit final discovery ranking
+        run: |
+          git add results/unknown_voc_discovery/discovery_rows.csv results/unknown_voc_discovery/discovery_summary.csv results/unknown_voc_discovery/selected.json
           git commit -m 'experiment: discover retained Unknown VOC candidates'
           git pull --rebase origin main
           git push origin HEAD:main
