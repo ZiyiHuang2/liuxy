@@ -42,3 +42,5 @@ jobs:
           git commit -m 'ci: Unknown VOC payload validated'
           git pull --rebase origin main
           git push origin HEAD:main
+
+# Trigger diagnostics.
