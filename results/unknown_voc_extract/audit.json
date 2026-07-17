@@ -1,0 +1,20 @@
+{
+  "raw_sha256": "33c906a75a1912db5bed502fee74f32c640b595e3d440f4ca79af9cf717bb766",
+  "n_samples": 159,
+  "n_raw_features": 1734,
+  "n_unknown_exact": 746,
+  "n_known_raw": 988,
+  "known_after_abundance": 593,
+  "known_final": 445,
+  "combined_after_abundance": 1040,
+  "combined_final": 780,
+  "unknown_after_abundance": 447,
+  "unknown_final": 335,
+  "known_current_shape_match": true,
+  "known_current_max_abs_diff": 9.360862378571255e-07,
+  "labels_match": true,
+  "class_counts": {
+    "0": 106,
+    "1": 53
+  }
+}
