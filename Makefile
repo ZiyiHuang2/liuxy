@@ -1,4 +1,4 @@
-.PHONY: install test inspect smoke evaluate train evaluate-enhanced train-enhanced
+.PHONY: install test inspect smoke evaluate train evaluate-enhanced train-enhanced unknown-quick unknown-full
 
 install:
 	python -m pip install -e ".[dev]"
@@ -23,3 +23,9 @@ evaluate-enhanced:
 
 train-enhanced:
 	voc-easy train --config configs/feature_diverse.json --model artifacts/voc_feature_diverse.joblib
+
+unknown-quick:
+	python experiments/run_unknown_voc_comparison.py --quick --output results/unknown_voc_quick
+
+unknown-full:
+	python experiments/run_unknown_voc_comparison.py --output results/unknown_voc

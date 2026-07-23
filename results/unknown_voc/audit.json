@@ -1,0 +1,26 @@
+{
+  "n_samples": 159,
+  "class_counts": {
+    "0": 106,
+    "1": 53
+  },
+  "known_shape": [
+    159,
+    445
+  ],
+  "combined_shape": [
+    159,
+    780
+  ],
+  "unknown_shape": [
+    159,
+    335
+  ],
+  "appended_shape": [
+    159,
+    780
+  ],
+  "known_mat_sha256": "5abfb996395fc9814cddb266cbde93efab7993dc551450507312469ab0ef2635",
+  "payload_sha256": "2040c38df075e71b3a588bc94a588dc5d3d3e0c0bb7158808c2bea7da8dabff8",
+  "protocol_note": "combined reruns the original abundance/IQR filters over all raw VOCs; appended concatenates the frozen 445 known panel with the separately filtered 335 Unknown panel"
+}

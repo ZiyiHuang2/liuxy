@@ -1,0 +1,92 @@
+{
+  "baseline": "known_diverse",
+  "candidate_methods": [
+    "combined_diverse",
+    "appended_diverse",
+    "unknown_diverse",
+    "known_unknown_w05",
+    "known_unknown_w10",
+    "known_unknown_w20",
+    "known_unknown_w30"
+  ],
+  "selected_candidates": [
+    "known_unknown_w05",
+    "known_unknown_w20"
+  ],
+  "selection_rule": "top two discovery mean F1 values excluding known_diverse",
+  "discovery": {
+    "seeds": [
+      107001,
+      107002,
+      107003,
+      107004,
+      107005,
+      107006
+    ],
+    "model": {
+      "n_submodels": 8,
+      "n_estimators": 20,
+      "learning_rate": 1.0,
+      "max_depth": 1,
+      "threshold": 0.5,
+      "random_state": 42,
+      "snv_eps": 1e-09,
+      "fixed_top_k": 125,
+      "weighted_subset_size": 150,
+      "random_pool_size": 250,
+      "random_subset_size": 125
+    }
+  },
+  "confirmation": {
+    "seeds": [
+      108001,
+      108002,
+      108003,
+      108004,
+      108005,
+      108006,
+      108007,
+      108008,
+      108009,
+      108010,
+      108011,
+      108012,
+      108013,
+      108014,
+      108015,
+      108016,
+      108017,
+      108018,
+      108019,
+      108020,
+      108021,
+      108022,
+      108023,
+      108024,
+      108025,
+      108026,
+      108027,
+      108028,
+      108029,
+      108030,
+      108031,
+      108032
+    ],
+    "model": {
+      "n_submodels": 50,
+      "n_estimators": 50,
+      "learning_rate": 1.0,
+      "max_depth": 1,
+      "threshold": 0.5,
+      "random_state": 42,
+      "snv_eps": 1e-09,
+      "fixed_top_k": 125,
+      "weighted_subset_size": 150,
+      "random_pool_size": 250,
+      "random_subset_size": 125
+    }
+  },
+  "n_splits": 5,
+  "threshold": 0.5,
+  "quick": false
+}
