@@ -1,10 +1,9 @@
 name: Apply sandbox Unknown VOC results
 
 on:
-  push:
-    branches: [agent/unknown-voc-sandbox]
-    paths:
-      - .github/workflows/sandbox-export.yml
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
