@@ -1,0 +1,45 @@
+name: Retained Unknown VOC comparison
+
+on:
+  workflow_dispatch:
+    inputs:
+      quick:
+        description: Run smoke-sized protocol instead of the frozen full confirmation
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retained-unknown-voc-comparison
+  cancel-in-progress: false
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install project
+        run: python -m pip install -e '.[dev]'
+      - name: Run tests
+        run: pytest
+      - name: Run comparison
+        shell: bash
+        run: |
+          args=(--n-jobs 2 --output results/unknown_voc)
+          if [[ '${{ inputs.quick }}' == 'true' ]]; then
+            args+=(--quick)
+          fi
+          python experiments/run_unknown_voc_comparison.py "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retained-unknown-voc-results
+          path: results/unknown_voc
+          retention-days: 14
