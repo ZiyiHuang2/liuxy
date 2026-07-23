@@ -31,22 +31,15 @@ jobs:
           base64 -d /tmp/liuxy-final-changes.tar.gz.b64 > /tmp/liuxy-final-changes.tar.gz
           echo '5f536053b71eb9372f12f48c183c3f39858f5c034af692026a6433c729848515  /tmp/liuxy-final-changes.tar.gz' | sha256sum -c -
           tar -xzf /tmp/liuxy-final-changes.tar.gz -C .
-      - name: Remove obsolete and temporary files
+      - name: Prepare non-workflow result commit
         shell: bash
         run: |
           rm -f \
-            .github/workflows/extract-unknown-data.yml \
-            .github/workflows/import-dataset.yml \
-            .github/workflows/unknown-voc-diagnose.yml \
-            .github/workflows/unknown-voc-discovery.yml \
-            .github/workflows/unknown-voc-experiment.yml \
-            .github/workflows/unknown-voc-fast-experiment.yml \
-            .github/workflows/unknown-voc-ping.yml \
             experiments/unknown_features_experiment.py.gz.b64 \
             results/unknown_voc_diagnostics/status.txt \
             results/unknown_voc_discovery/workflow_ping.txt
+          git restore --source=HEAD -- .github/workflows
           rm -rf .sandbox
-          rm -f .github/workflows/sandbox-export.yml
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -58,9 +51,8 @@ jobs:
           pytest -q
           python -m py_compile experiments/run_unknown_voc_comparison.py
           git diff --check
-          test "$(find .github/workflows -maxdepth 1 -type f | wc -l)" -eq 1
           test ! -e .sandbox
-      - name: Commit final result
+      - name: Commit validated code and results
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
