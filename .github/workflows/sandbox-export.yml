@@ -39,6 +39,7 @@ jobs:
             results/unknown_voc_diagnostics/status.txt \
             results/unknown_voc_discovery/workflow_ping.txt
           git restore --source=HEAD -- .github/workflows
+          rm -f .github/workflows/unknown-voc-comparison.yml
           rm -rf .sandbox
       - uses: actions/setup-python@v5
         with:
@@ -52,6 +53,7 @@ jobs:
           python -m py_compile experiments/run_unknown_voc_comparison.py
           git diff --check
           test ! -e .sandbox
+          test ! -e .github/workflows/unknown-voc-comparison.yml
       - name: Commit validated code and results
         shell: bash
         run: |
