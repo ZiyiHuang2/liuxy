@@ -21,6 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: agent/unknown-voc-sandbox
           fetch-depth: 0
       - name: Verify and restore sandbox payload
         shell: bash
