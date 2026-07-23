@@ -66,3 +66,19 @@ The original frozen SNV + ANOVA Top-125 + EasyEnsemble-50 pipeline reached F1 `0
 - threshold 0.495.
 
 Development values near 0.80 are not reported as generalization results.
+
+## Retained Unknown VOC comparison
+
+An offline payload reconstructs the 780-feature combined matrix and the 335-feature Unknown-only matrix from the original raw VOC table. All candidates use five-fold outer CV, fold-local SNV and ANOVA, a fixed threshold of 0.5, and identical model random states across feature representations.
+
+The lightweight six-seed discovery stage ranked direct retention below the 445-feature known baseline: combined F1 `0.7452`, appended F1 `0.7415`, and Unknown-only F1 `0.6301`, versus known F1 `0.7828`. The frozen full confirmation therefore evaluated the two strongest probability fusions against the known baseline on 32 new seeds.
+
+| Method | F1 mean | F1 std | Minimum F1 | ROC-AUC | PR-AUC |
+|---|---:|---:|---:|---:|---:|
+| known + 5% Unknown probability | **0.7773** | **0.0191** | **0.7434** | **0.9034** | **0.8365** |
+| known + 20% Unknown probability | 0.7765 | 0.0193 | 0.7273 | 0.9021 | 0.8353 |
+| known only | 0.7763 | 0.0216 | 0.7339 | 0.9032 | 0.8357 |
+
+For the 5% fusion, paired `ΔF1 = +0.00096`, bootstrap 95% CI `[-0.00188, +0.00370]`, with 10 wins, 16 ties and 6 losses; Wilcoxon `p = 0.642`. The effect is too small and uncertain to justify replacing the known-only model. The formal pipeline continues to remove Unknown.
+
+Complete records are stored in `results/unknown_voc/`.

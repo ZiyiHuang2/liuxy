@@ -47,9 +47,25 @@ Run the integrity check with:
 python scripts/materialize_dataset.py
 ```
 
-## Provenance
+## Provenance and retained Unknown payload
 
-`.github/workflows/import-dataset.yml` downloaded the file from the original public project repository, checked the fixed SHA-256 and committed the verified binary to this repository. The experiment code does not require network access after cloning this repository.
+The verified MAT binary is committed directly to the repository, so normal training and evaluation require no network access. Its SHA-256 is fixed above.
+
+The auxiliary directory `results/unknown_voc_extract/` contains a chunked, base64-encoded NPZ payload reconstructed from the original raw VOC table. `manifest.json` lists the ordered parts and fixes the decoded payload SHA-256 to:
+
+```text
+2040c38df075e71b3a588bc94a588dc5d3d3e0c0bb7158808c2bea7da8dabff8
+```
+
+The decoded payload contains:
+
+| Key | Shape | Meaning |
+|---|---:|---|
+| `combined_X` | 159 × 780 | known and Unknown columns filtered together |
+| `unknown_X` | 159 × 335 | Unknown columns filtered independently |
+| `y` | 159 | labels verified against the primary MAT |
+
+`experiments/run_unknown_voc_comparison.py` reconstructs and verifies this payload automatically. It also forms the 780-feature appended matrix by concatenating the frozen 445-feature known matrix and the 335-feature Unknown-only matrix.
 
 ## Important limitation
 

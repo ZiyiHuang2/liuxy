@@ -9,3 +9,4 @@ dist/
 artifacts/
 outputs/
 .DS_Store
+.work/

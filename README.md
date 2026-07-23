@@ -42,6 +42,35 @@ Thirty-two previously unused shuffle seeds were evaluated with five-fold outer c
 
 On the canonical `seed=42` split, the enhanced model reached F1 `0.7593`, compared with `0.7321` for the fixed branch. A single seed is not used as the primary claim; the 32-seed paired result is the main evidence.
 
+## Retained Unknown VOC audit
+
+The repository also contains an offline reconstruction of the VOC columns whose exact feature name was `Unknown`. The original source had 1,734 VOC columns, including 746 `Unknown` columns. After the frozen abundance and IQR filters, the retained matrices are:
+
+| Representation | Features | Construction | Discovery F1 |
+|---|---:|---|---:|
+| known | 445 | existing frozen matrix with `Unknown` removed | **0.7828** |
+| combined | 780 | rerun the filters over known and `Unknown` columns together | 0.7452 |
+| appended | 780 | frozen 445 known features plus 335 separately filtered `Unknown` features | 0.7415 |
+| unknown-only | 335 | separately filtered `Unknown` features | 0.6301 |
+
+The direct retained-Unknown representations were clearly weaker in the frozen discovery stage. The two best low-weight probability-fusion candidates were then frozen and evaluated on 32 completely new shuffle seeds with the full 50 × 50 model budget:
+
+| Method | F1 mean | F1 std | Minimum F1 | Mean paired ΔF1 | 95% CI |
+|---|---:|---:|---:|---:|---:|
+| known + 5% unknown probability | **0.7773** | **0.0191** | **0.7434** | +0.0010 | [-0.0019, 0.0037] |
+| known + 20% unknown probability | 0.7765 | 0.0193 | 0.7273 | +0.0002 | [-0.0062, 0.0072] |
+| known only | 0.7763 | 0.0216 | 0.7339 | reference | — |
+
+The 5% fusion produced 10 wins, 16 ties and 6 losses against the paired known-only baseline, with Wilcoxon `p = 0.642`. This is not evidence of a stable improvement. **The deployable model therefore continues to remove `Unknown`; retaining it is documented as an exploratory result, not a new champion.** These F1 values use a new seed set and should only be compared within this paired table, not directly against the earlier round-6 mean.
+
+Reproduce the offline comparison with:
+
+```bash
+make unknown-full
+```
+
+A smoke-sized integrity run is available as `make unknown-quick`. Full records are in [`results/unknown_voc`](results/unknown_voc), and the Chinese report is [`results/unknown_voc/REPORT.md`](results/unknown_voc/REPORT.md).
+
 ## Repository structure
 
 ```text
@@ -50,12 +79,11 @@ On the canonical `seed=42` split, the enhanced model reached F1 `0.7593`, compar
 │   ├── default.json
 │   └── feature_diverse.json
 ├── data/voc_dataset_1+2_vs_3.mat
-├── docs/ROUND6_EXPLORATION.md
-├── results/round6/
-│   ├── confirm32_rows_*.csv
-│   ├── confirm32_summary.csv
-│   ├── confirm32_paired.csv
-│   └── experiment_manifest.json
+├── experiments/run_unknown_voc_comparison.py
+├── results/
+│   ├── round6/
+│   ├── unknown_voc/
+│   └── unknown_voc_extract/
 ├── src/voc_easyensemble/
 │   ├── model.py
 │   └── feature_diverse.py
@@ -102,4 +130,5 @@ The dataset does not include subject identifiers, collection batches, devices or
 - [Results](docs/RESULTS.md)
 - [Experiment history](docs/EXPERIMENT_HISTORY.md)
 - [Round-6 report](docs/ROUND6_EXPLORATION.md)
+- [Retained Unknown VOC report](results/unknown_voc/REPORT.md)
 - [Dataset card](data/README.md)
