@@ -1,0 +1,4 @@
+Full retained-Unknown VOC experiment
+Triggered automatically on 2026-07-24.
+Protocol: 12-seed screen -> 16-seed verification -> 32-seed final.
+Parallel seed workers: 4.
