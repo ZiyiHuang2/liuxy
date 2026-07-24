@@ -180,9 +180,10 @@ voc-easy predict \
 
 - `REPORT.md`：中文完整报告；
 - `manifest.json`：冻结配置、随机种子、候选和数据哈希；
-- `*_rows.csv`：每个随机种子的原始指标；
-- `*_summary.csv`：各阶段汇总；
-- `*_paired.csv`：相对 known-only 的配对检验；
+- `screen_summary.csv`、`verify_summary.csv`、`final_summary.csv`：各阶段汇总；
+- `screen_paired.csv`、`verify_paired.csv`、`final_paired.csv`：相对 known-only 的配对检验；
+- `verify_rows.csv`、`final_rows.csv`：Verify 和 Final 的逐种子原始指标；
+- `screen_rows.csv.gz.b64`：Screen 逐种子原始指标的 gzip + Base64 文本，可按结果目录 README 中的命令解码；
 - `*_selected.json`：各阶段进入下一阶段的候选。
 
 ## 9. 相关文档
