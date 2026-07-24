@@ -1,0 +1,58 @@
+name: Apply sandbox Unknown VOC results
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-sandbox-unknown-results
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/commit-unknown-voc-results
+          fetch-depth: 0
+      - name: Restore and verify results
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d .sandbox/unknown-voc-results.tar.gz.b64 > /tmp/unknown-voc-results.tar.gz
+          echo 'ef23c1dd2130ea13755f6e9392a9d9330e5b34d55ed7fbeacf6356be8d9399da  /tmp/unknown-voc-results.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/unknown-voc-results.tar.gz -C .
+          test -f results/unknown_voc_replanned/REPORT.md
+          test -f results/unknown_voc_replanned/final_summary.csv
+          test -f results/unknown_voc_replanned/final_paired.csv
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('results/unknown_voc_replanned/manifest.json').read_text())
+          assert manifest['quick'] is False
+          assert manifest['candidate_count'] == 22
+          assert len(manifest['config']['screen']['seeds']) == 12
+          assert len(manifest['config']['verify']['seeds']) == 16
+          assert len(manifest['config']['final']['seeds']) == 32
+          assert manifest['audit']['known_shape'] == [159, 445]
+          print('manifest validation passed')
+          PY
+      - name: Commit final experiment records
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .sandbox
+          rm -f .github/workflows/apply-sandbox-results.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A README.md results/unknown_voc_replanned .sandbox .github/workflows/apply-sandbox-results.yml
+          git diff --cached --check
+          git commit -m 'results: add full replanned Unknown VOC experiment'
+          git push origin HEAD:agent/commit-unknown-voc-results
