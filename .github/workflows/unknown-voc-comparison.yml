@@ -1,6 +1,12 @@
 name: Replanned Unknown VOC experiment
 
 on:
+  push:
+    branches:
+      - experiment/full-unknown-voc
+    paths:
+      - runs/full-unknown-voc-trigger.txt
+      - .github/workflows/unknown-voc-comparison.yml
   pull_request:
     branches: [main]
     paths:
@@ -46,8 +52,14 @@ jobs:
       - name: Run replanned protocol
         shell: bash
         run: |
-          args=(--n-jobs '${{ inputs.n_jobs || '2' }}' --output results/unknown_voc_replanned)
-          if [[ '${{ github.event_name }}' == 'pull_request' || '${{ inputs.full }}' != 'true' ]]; then
+          jobs='${{ inputs.n_jobs || '2' }}'
+          if [[ '${{ github.event_name }}' == 'push' ]]; then
+            jobs=4
+          fi
+          args=(--n-jobs "$jobs" --output results/unknown_voc_replanned)
+          if [[ '${{ github.event_name }}' == 'pull_request' ]]; then
+            args+=(--quick)
+          elif [[ '${{ github.event_name }}' == 'workflow_dispatch' && '${{ inputs.full }}' != 'true' ]]; then
             args+=(--quick)
           fi
           python experiments/run_unknown_voc_replanned.py "${args[@]}"
