@@ -1,0 +1,14 @@
+{
+  "stage": "screen",
+  "selected": [
+    "known_unknown_stable_k150_w10",
+    "known_unknown_all_w20",
+    "known_unknown_stable_k150_w20",
+    "known_unknown_all_w05",
+    "appended_stable_k50",
+    "appended_all_diverse"
+  ],
+  "champion_count": 6,
+  "max_per_family": 2,
+  "selection_rule": "rank by mean F1 then minimum F1, with family cap"
+}
