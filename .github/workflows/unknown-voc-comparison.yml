@@ -1,23 +1,36 @@
-name: Retained Unknown VOC comparison
+name: Replanned Unknown VOC experiment
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - configs/unknown_voc_replanned.json
+      - experiments/run_unknown_voc_replanned.py
+      - tests/test_unknown_voc_replanned.py
+      - .github/workflows/unknown-voc-comparison.yml
   workflow_dispatch:
     inputs:
-      quick:
-        description: Run smoke-sized protocol instead of the frozen full confirmation
+      full:
+        description: Run the full 12/16/32-seed protocol instead of the quick integrity run
         required: false
         default: false
         type: boolean
+      n_jobs:
+        description: Parallel seed workers
+        required: false
+        default: '2'
+        type: choice
+        options: ['1', '2', '4']
 
 permissions:
   contents: read
 
 concurrency:
-  group: retained-unknown-voc-comparison
+  group: replanned-unknown-voc-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  compare:
+  experiment:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
@@ -30,16 +43,19 @@ jobs:
         run: python -m pip install -e '.[dev]'
       - name: Run tests
         run: pytest
-      - name: Run comparison
+      - name: Run replanned protocol
         shell: bash
         run: |
-          args=(--n-jobs 2 --output results/unknown_voc)
-          if [[ '${{ inputs.quick }}' == 'true' ]]; then
+          args=(--n-jobs '${{ inputs.n_jobs || '2' }}' --output results/unknown_voc_replanned)
+          if [[ '${{ github.event_name }}' == 'pull_request' || '${{ inputs.full }}' != 'true' ]]; then
             args+=(--quick)
           fi
-          python experiments/run_unknown_voc_comparison.py "${args[@]}"
-      - uses: actions/upload-artifact@v4
+          python experiments/run_unknown_voc_replanned.py "${args[@]}"
+      - name: Upload experiment records
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: retained-unknown-voc-results
-          path: results/unknown_voc
+          name: replanned-unknown-voc-${{ github.run_id }}
+          path: results/unknown_voc_replanned
+          if-no-files-found: error
           retention-days: 14
