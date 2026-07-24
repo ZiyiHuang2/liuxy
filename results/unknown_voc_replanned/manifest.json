@@ -1,0 +1,54 @@
+{
+  "config": {
+    "stable_top_k": [25, 50, 100, 150],
+    "fusion_weights": [0.05, 0.1, 0.2],
+    "selection_fraction": 0.8,
+    "screen": {
+      "seeds": [109001, 109002, 109003, 109004, 109005, 109006, 109007, 109008, 109009, 109010, 109011, 109012],
+      "n_submodels": 12,
+      "n_estimators": 25,
+      "stability_bootstraps": 12,
+      "champion_count": 6,
+      "max_per_family": 2
+    },
+    "verify": {
+      "seeds": [110001, 110002, 110003, 110004, 110005, 110006, 110007, 110008, 110009, 110010, 110011, 110012, 110013, 110014, 110015, 110016],
+      "n_submodels": 25,
+      "n_estimators": 35,
+      "stability_bootstraps": 20,
+      "champion_count": 4,
+      "max_per_family": 2
+    },
+    "final": {
+      "seeds": [111001, 111002, 111003, 111004, 111005, 111006, 111007, 111008, 111009, 111010, 111011, 111012, 111013, 111014, 111015, 111016, 111017, 111018, 111019, 111020, 111021, 111022, 111023, 111024, 111025, 111026, 111027, 111028, 111029, 111030, 111031, 111032],
+      "n_submodels": 50,
+      "n_estimators": 50,
+      "stability_bootstraps": 30,
+      "champion_count": 3,
+      "max_per_family": 2
+    }
+  },
+  "config_sha256": "51595b0cf3822d9b3d806ae4a09d8da63f31d887bdade62d7983b24474ea3116",
+  "quick": false,
+  "n_splits": 5,
+  "threshold": 0.5,
+  "candidate_count": 22,
+  "screen_champion_count": 6,
+  "verify_champion_count": 4,
+  "final_champion_count": 3,
+  "selections": {
+    "screen": ["known_unknown_stable_k150_w10", "known_unknown_all_w20", "known_unknown_stable_k150_w20", "known_unknown_all_w05", "appended_stable_k50", "appended_all_diverse"],
+    "verify": ["known_unknown_stable_k150_w20", "known_unknown_stable_k150_w10", "known_unknown_all_w05", "known_unknown_all_w20"],
+    "final": ["known_unknown_all_w05", "known_unknown_stable_k150_w10", "known_unknown_stable_k150_w20"]
+  },
+  "audit": {
+    "n_samples": 159,
+    "class_counts": {"0": 106, "1": 53},
+    "known_shape": [159, 445],
+    "combined_shape": [159, 780],
+    "unknown_shape": [159, 335],
+    "appended_all_shape": [159, 780],
+    "known_mat_sha256": "5abfb996395fc9814cddb266cbde93efab7993dc551450507312469ab0ef2635",
+    "payload_sha256": "2040c38df075e71b3a588bc94a588dc5d3d3e0c0bb7158808c2bea7da8dabff8"
+  }
+}
