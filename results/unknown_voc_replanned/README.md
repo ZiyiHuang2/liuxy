@@ -11,9 +11,20 @@
 
 正式结论：所有 Unknown 候选均未达到替换 known-only 基线的预设标准，正式模型继续删除 Unknown。
 
-优先阅读：
+## 文件说明
 
 - `REPORT.md`：中文完整报告；
-- `final_summary.csv`：最终汇总；
-- `final_paired.csv`：最终配对检验；
-- `manifest.json`：冻结配置、随机种子、数据哈希和候选传递。
+- `manifest.json`：冻结配置、随机种子、数据哈希和候选传递；
+- `screen_summary.csv`、`verify_summary.csv`、`final_summary.csv`：三阶段汇总；
+- `screen_paired.csv`、`verify_paired.csv`、`final_paired.csv`：相对 known-only 的配对检验；
+- `verify_rows.csv`、`final_rows.csv`：Verify 和 Final 的逐种子原始指标；
+- `screen_rows.csv.gz.b64`：Screen 逐种子原始指标的 gzip + Base64 文本；
+- `*_selected.json`：每个阶段冻结进入下一阶段的候选。
+
+解码 Screen 原始记录：
+
+```bash
+base64 -d results/unknown_voc_replanned/screen_rows.csv.gz.b64 \
+  | gzip -d \
+  > results/unknown_voc_replanned/screen_rows.csv
+```
