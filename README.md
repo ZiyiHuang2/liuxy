@@ -3,73 +3,78 @@
 A complete, reproducible binary VOC classification project for a high-dimensional, small-sample setting:
 
 - 159 samples;
-- 445 VOC features;
+- 445 known VOC features after removing exact-name `Unknown` columns;
 - class counts 106 vs 53;
-- original MATLAB dataset included in the repository.
+- original MATLAB dataset and a hash-verified retained-Unknown payload included.
 
-The project now contains two frozen model lines.
+## Current frozen model
 
 | Model | Pipeline | Status | Repeated-CV F1 |
 |---|---|---|---:|
 | Stable baseline | SNV → ANOVA Top-125 → EasyEnsemble-50 → threshold 0.5 | simplest reliable model | about 0.76 |
 | **Feature-diverse enhancement** | SNV → three VOC subspace branches → 3 × EasyEnsemble-50 → equal probability mean → threshold 0.5 | **current highest confirmed candidate** | **0.7714 ± 0.0286** |
 
-The enhanced model is numerically stronger, but its paired 32-seed advantage over the fixed Top-125 baseline is small and not conventionally significant (`ΔF1 = +0.00556`, 95% CI approximately `[-0.00002, 0.01126]`, Wilcoxon `p = 0.0938`). It should be described as the current best enhanced candidate, not as conclusively superior.
+The enhanced model is numerically stronger, but its paired 32-seed advantage over the fixed Top-125 baseline is small and not conventionally significant (`ΔF1 = +0.00556`, 95% CI approximately `[-0.00002, 0.01126]`, Wilcoxon `p = 0.0938`). It is the current best enhanced candidate, not conclusively superior.
 
 ## Feature-diverse model
 
 The enhanced model trains three branches inside every training fold:
 
 1. **Fixed strong panel:** ANOVA Top-125;
-2. **Weighted exploration:** each balanced submodel samples 150 of all 445 VOCs without replacement, using training-fold ANOVA scores as probabilities;
+2. **Weighted exploration:** each balanced submodel samples 150 of all 445 VOCs using training-fold ANOVA scores as probabilities;
 3. **Top-pool diversity:** each balanced submodel samples 125 VOCs from the training-fold ANOVA Top-250.
 
-Each branch contains 50 AdaBoost models with depth-1 trees. Every submodel receives all positive samples and an equally sized random subset of negatives. The three branch probabilities are averaged and classified with a fixed threshold of 0.5.
-
-This extends the original EasyEnsemble in two dimensions:
-
-- sample diversity through repeated majority-class subsampling;
-- feature diversity through repeated high-evidence VOC subspaces.
+Each branch contains 50 AdaBoost models with depth-1 trees. Every submodel receives all positive samples and an equally sized random subset of negatives. The three branch probabilities are averaged at threshold 0.5.
 
 ## Confirmed round-6 result
 
-Thirty-two previously unused shuffle seeds were evaluated with five-fold outer cross-validation. All SNV transformations, ANOVA scores and feature subspaces were fitted using only the current outer training fold.
+Thirty-two previously unused shuffle seeds were evaluated with five-fold outer cross-validation. All SNV transformations, ANOVA scores and feature subspaces were fitted only on the current outer training fold.
 
 | Method | F1 mean | F1 std | Minimum F1 | ROC-AUC | PR-AUC |
 |---|---:|---:|---:|---:|---:|
 | **Feature-diverse three-branch ensemble** | **0.7714** | 0.0286 | **0.7037** | **0.9018** | **0.8319** |
 | Fixed ANOVA Top-125 EasyEnsemble-50 | 0.7658 | 0.0308 | 0.6852 | 0.8993 | 0.8297 |
 
-On the canonical `seed=42` split, the enhanced model reached F1 `0.7593`, compared with `0.7321` for the fixed branch. A single seed is not used as the primary claim; the 32-seed paired result is the main evidence.
+## First retained-Unknown audit
 
-## Retained Unknown VOC audit
+The raw source contained 1,734 VOC columns, including 746 exact-name `Unknown` columns. Frozen filtering produced 445 known features, 335 separately filtered Unknown features and 780-feature combined/appended representations.
 
-The repository also contains an offline reconstruction of the VOC columns whose exact feature name was `Unknown`. The original source had 1,734 VOC columns, including 746 `Unknown` columns. After the frozen abundance and IQR filters, the retained matrices are:
+| Representation | Features | Discovery F1 |
+|---|---:|---:|
+| known | 445 | **0.7828** |
+| combined | 780 | 0.7452 |
+| appended | 780 | 0.7415 |
+| unknown-only | 335 | 0.6301 |
 
-| Representation | Features | Construction | Discovery F1 |
-|---|---:|---|---:|
-| known | 445 | existing frozen matrix with `Unknown` removed | **0.7828** |
-| combined | 780 | rerun the filters over known and `Unknown` columns together | 0.7452 |
-| appended | 780 | frozen 445 known features plus 335 separately filtered `Unknown` features | 0.7415 |
-| unknown-only | 335 | separately filtered `Unknown` features | 0.6301 |
+The best initial retained-Unknown candidate was a 5% probability fusion. Across 32 new seeds it reached F1 `0.7773` versus `0.7763` for known-only, with paired `ΔF1=+0.00096`, 95% CI `[-0.00188, 0.00370]` and Wilcoxon `p=0.642`. This was not a stable improvement, so the deployable model still removes Unknown.
 
-The direct retained-Unknown representations were clearly weaker in the frozen discovery stage. The two best low-weight probability-fusion candidates were then frozen and evaluated on 32 completely new shuffle seeds with the full 50 × 50 model budget:
+## Replanned Unknown experiment
 
-| Method | F1 mean | F1 std | Minimum F1 | Mean paired ΔF1 | 95% CI |
-|---|---:|---:|---:|---:|---:|
-| known + 5% unknown probability | **0.7773** | **0.0191** | **0.7434** | +0.0010 | [-0.0019, 0.0037] |
-| known + 20% unknown probability | 0.7765 | 0.0193 | 0.7273 | +0.0002 | [-0.0062, 0.0072] |
-| known only | 0.7763 | 0.0216 | 0.7339 | reference | — |
+The new experiment addresses the narrow two-champion funnel and tests whether only a stable subset of Unknown features is useful.
 
-The 5% fusion produced 10 wins, 16 ties and 6 losses against the paired known-only baseline, with Wilcoxon `p = 0.642`. This is not evidence of a stable improvement. **The deployable model therefore continues to remove `Unknown`; retaining it is documented as an exploratory result, not a new champion.** These F1 values use a new seed set and should only be compared within this paired table, not directly against the earlier round-6 mean.
+- **22 candidates** plus the known baseline;
+- fold-local stable Unknown selection at top 25, 50, 100 and 150;
+- appended-subset and 5%/10%/20% probability-fusion families;
+- disjoint **12-seed screen → 16-seed verification → 32-seed final** stages;
+- champion pools of **6 → 4 → 3** with per-family caps;
+- full final budget of three branches × 50 submodels × 50 AdaBoost estimators;
+- one checkpoint file per seed for safe local resume.
 
-Reproduce the offline comparison with:
+The formal known-only model remains frozen until a final candidate has a positive paired effect, confidence interval entirely above zero, Wilcoxon `p<0.05`, more wins than losses, and no material worst-seed regression.
+
+Quick integrity run:
 
 ```bash
-make unknown-full
+make unknown-replan-quick
 ```
 
-A smoke-sized integrity run is available as `make unknown-quick`. Full records are in [`results/unknown_voc`](results/unknown_voc), and the Chinese report is [`results/unknown_voc/REPORT.md`](results/unknown_voc/REPORT.md).
+Full automatic run:
+
+```bash
+make unknown-replan-full
+```
+
+Detailed protocol: [`docs/UNKNOWN_VOC_REPLAN.md`](docs/UNKNOWN_VOC_REPLAN.md).
 
 ## Repository structure
 
@@ -77,16 +82,17 @@ A smoke-sized integrity run is available as `make unknown-quick`. Full records a
 .
 ├── configs/
 │   ├── default.json
-│   └── feature_diverse.json
+│   ├── feature_diverse.json
+│   └── unknown_voc_replanned.json
 ├── data/voc_dataset_1+2_vs_3.mat
-├── experiments/run_unknown_voc_comparison.py
+├── experiments/
+│   ├── run_unknown_voc_comparison.py
+│   └── run_unknown_voc_replanned.py
 ├── results/
 │   ├── round6/
 │   ├── unknown_voc/
 │   └── unknown_voc_extract/
 ├── src/voc_easyensemble/
-│   ├── model.py
-│   └── feature_diverse.py
 └── tests/
 ```
 
@@ -130,5 +136,6 @@ The dataset does not include subject identifiers, collection batches, devices or
 - [Results](docs/RESULTS.md)
 - [Experiment history](docs/EXPERIMENT_HISTORY.md)
 - [Round-6 report](docs/ROUND6_EXPLORATION.md)
-- [Retained Unknown VOC report](results/unknown_voc/REPORT.md)
+- [First retained-Unknown report](results/unknown_voc/REPORT.md)
+- [Replanned Unknown protocol](docs/UNKNOWN_VOC_REPLAN.md)
 - [Dataset card](data/README.md)
