@@ -10,6 +10,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - runs/full-unknown-voc-trigger.txt
       - configs/unknown_voc_replanned.json
       - experiments/run_unknown_voc_replanned.py
       - tests/test_unknown_voc_replanned.py
@@ -53,11 +54,11 @@ jobs:
         shell: bash
         run: |
           jobs='${{ inputs.n_jobs || '2' }}'
-          if [[ '${{ github.event_name }}' == 'push' ]]; then
+          if [[ '${{ github.event_name }}' == 'push' || '${{ github.head_ref }}' == 'experiment/full-unknown-voc' ]]; then
             jobs=4
           fi
           args=(--n-jobs "$jobs" --output results/unknown_voc_replanned)
-          if [[ '${{ github.event_name }}' == 'pull_request' ]]; then
+          if [[ '${{ github.event_name }}' == 'pull_request' && '${{ github.head_ref }}' != 'experiment/full-unknown-voc' ]]; then
             args+=(--quick)
           elif [[ '${{ github.event_name }}' == 'workflow_dispatch' && '${{ inputs.full }}' != 'true' ]]; then
             args+=(--quick)
