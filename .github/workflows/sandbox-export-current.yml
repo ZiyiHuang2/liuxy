@@ -1,0 +1,24 @@
+name: Export current repository for sandbox
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/sandbox-export-current.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pack repository
+        run: |
+          tar --exclude=.git -czf /tmp/liuxy-current.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liuxy-current-repository
+          path: /tmp/liuxy-current.tar.gz
+          retention-days: 1
